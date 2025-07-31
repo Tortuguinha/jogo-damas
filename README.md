@@ -39,4 +39,4 @@ Este é um projeto pessoal de um jogo de damas programado em Python. O objetivo 
 
 1. Clone este repositório:
    ```bash
-   git clone https://github.com/seu-usuario/jogo-damas.git
+   git clone https://github.com/Tortuguinha/jogo-damas.git
