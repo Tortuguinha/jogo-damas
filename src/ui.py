@@ -1,7 +1,7 @@
 def ler_movimento(turno):
     while True:
         try:
-            movimento = input(f"Jogador {'Brancas' if turno == 'B' else 'Pretas'}, digite o movimento (ex: 2,3-3,4) ou 'sair' para terminar: ").strip()
+            movimento = input(f"Jogador {'Brancas' if turno == 'B' else 'Pretas'}, digite o movimento (ex: 2,3-3,4) ou 'sair' para terminar: ").strip().replace(" ", "")
             if movimento.lower() == 'sair':
                 return None, None
 

@@ -1,4 +1,4 @@
-from src.tabuleiro import Tabuleiro
+from src.tabuleiro import Tabuleiro, Peao, Dama
 
 def test_tabuleiro_inicial_tem_64_posicoes():
     tab = Tabuleiro()
@@ -7,8 +7,8 @@ def test_tabuleiro_inicial_tem_64_posicoes():
 
 def test_tabuleiro_tem_12_pecas_brancas_e_12_pretas():
     tab = Tabuleiro()
-    pecas = sum(tab.tabuleiro, [])  # achata a lista
-    brancas = pecas.count('B')
-    pretas = pecas.count('P')
+    pecas = sum(tab.tabuleiro, [])  # achata a matriz
+    brancas = sum(1 for p in pecas if p is not None and p.cor == 'B')
+    pretas = sum(1 for p in pecas if p is not None and p.cor == 'P')
     assert brancas == 12
     assert pretas == 12
