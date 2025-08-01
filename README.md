@@ -6,12 +6,12 @@ Este é um projeto pessoal de um jogo de damas programado em Python. O objetivo 
 
 ## 🚀 Funcionalidades (planejadas)
 
-- [ ] Tabuleiro 8x8
-- [ ] Peças pretas e brancas
-- [ ] Movimentação básica
-- [ ] Captura de peças
-- [ ] Regras de promoção (dama)
-- [ ] Regras de vitória
+- [X] Tabuleiro 8x8
+- [X] Peças pretas e brancas
+- [X] Movimentação básica
+- [X] Captura de peças
+- [X] Regras de promoção (dama)
+- [X] Regras de vitória
 - [ ] Interface com `pygame` (futuramente)
 - [ ] IA oponente (futuramente)
 
