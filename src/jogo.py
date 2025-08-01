@@ -2,10 +2,15 @@ from .tabuleiro import Tabuleiro, Peao, Dama
 from .ui_base import UIBase  # Importar a interface base
 
 class Jogo:
-    def __init__(self, ui: UIBase):
-        self.tabuleiro = Tabuleiro()
-        self.turno = 'B'  # 'B' para brancas, 'P' para pretas
+    def __init__(self, ui: UIBase, tabuleiro=None):
+        if tabuleiro is None:
+            self.tabuleiro = Tabuleiro()
+        else:
+            self.tabuleiro = tabuleiro
+        self.turno = 'B'
         self.ui = ui
+        # Sincroniza o tabuleiro da UI com o do jogo
+        self.ui.tabuleiro = self.tabuleiro
 
     def alternar_turno(self):
         self.turno = 'P' if self.turno == 'B' else 'B'
@@ -27,16 +32,18 @@ class Jogo:
         peca = self.tabuleiro.obter_peca(origem)
         if not peca:
             self.ui.mostrar_mensagem("Não há peça na origem")
-            return False
+            return False, False  # Não moveu, sem promoção
 
         self.tabuleiro.mover_peca(origem, destino)
 
         linha_d, _ = destino
+        promovido = False
         if isinstance(peca, Peao):
             if (peca.cor == 'B' and linha_d == 0) or (peca.cor == 'P' and linha_d == self.tabuleiro.tamanho -1):
                 self.ui.mostrar_mensagem(f"Peça {peca.cor} promovida a Dama!")
+                promovido = True
 
-        return True
+        return True, promovido
 
     def verificar_captura_disponivel(self, pos):
         peca = self.tabuleiro.obter_peca(pos)
@@ -69,11 +76,13 @@ class Jogo:
                 break
 
             if self.validar_movimento(origem, destino):
-                self.mover_peca(origem, destino)
+                moveu, promovido = self.mover_peca(origem, destino)
 
                 linha_o, col_o = origem
                 linha_d, col_d = destino
-                if abs(linha_d - linha_o) == 2:
+
+                # Só continua a captura múltipla se NÃO houve promoção
+                if not promovido and abs(linha_d - linha_o) == 2:
                     nova_origem = destino
 
                     while self.verificar_captura_disponivel(nova_origem):

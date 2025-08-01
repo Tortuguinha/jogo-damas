@@ -1,7 +1,9 @@
 from src.jogo import Jogo
-from src.ui_console import UIConsole
+from src.ui_pygame import UIPygame
+from src.tabuleiro import Tabuleiro
 
 if __name__ == "__main__":
-    ui_console = UIConsole()
-    jogo = Jogo(ui_console)
+    tabuleiro = Tabuleiro()
+    ui = UIPygame()
+    jogo = Jogo(ui, tabuleiro)
     jogo.jogar()
