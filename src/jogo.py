@@ -30,7 +30,7 @@ class Jogo:
 
         self.tabuleiro.mover_peca(origem, destino)
 
-        # Promoção é tratada dentro do Tabuleiro.mover_peca, mas se quiser imprimir aqui:
+        # Promoção é tratada dentro do Tabuleiro.mover_peca
         linha_d, _ = destino
         if isinstance(peca, Peao):
             if (peca.cor == 'B' and linha_d == 0) or (peca.cor == 'P' and linha_d == self.tabuleiro.tamanho -1):
@@ -44,11 +44,23 @@ class Jogo:
             return False
 
         movimentos = peca.movimentos_validos(pos, self.tabuleiro)
-        # Captura é quando o deslocamento é > 1 na linha (pulo)
         for mov in movimentos:
             if abs(mov[0] - pos[0]) > 1:
                 return True
         return False
+
+    def fim_de_jogo(self, cor):
+        """
+        Verifica se o jogador da cor especificada ainda possui peças com movimentos válidos.
+        """
+        for linha in range(self.tabuleiro.tamanho):
+            for coluna in range(self.tabuleiro.tamanho):
+                peca = self.tabuleiro.obter_peca((linha, coluna))
+                if peca and peca.cor == cor:
+                    movimentos = peca.movimentos_validos((linha, coluna), self.tabuleiro)
+                    if movimentos:
+                        return False
+        return True
 
     def jogar(self):
         while True:
@@ -64,7 +76,7 @@ class Jogo:
 
                 linha_o, col_o = origem
                 linha_d, col_d = destino
-                if abs(linha_d - linha_o) == 2:  # movimento de captura
+                if abs(linha_d - linha_o) == 2:
                     nova_origem = destino
 
                     while self.verificar_captura_disponivel(nova_origem):
@@ -83,7 +95,11 @@ class Jogo:
                             print("Movimento inválido na sequência de capturas.")
                             break
 
+                # Verificar fim de jogo antes de alternar turno
                 self.alternar_turno()
-
+                if self.fim_de_jogo(self.turno):
+                    print(f"\nJogador {'Brancas' if self.turno == 'B' else 'Pretas'} não tem mais movimentos.")
+                    print(f"Jogador {'Pretas' if self.turno == 'B' else 'Brancas'} venceu!")
+                    break
             else:
                 print("Movimento inválido, tente novamente.")

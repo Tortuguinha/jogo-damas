@@ -1,15 +1,28 @@
-from src.jogo import Jogo
-from src.tabuleiro import Peao
+from src.tabuleiro import Peao, Dama, Tabuleiro
 
-def test_movimento_simples_valido():
-    jogo = Jogo()
-    jogo.tabuleiro.tabuleiro = [[None for _ in range(8)] for _ in range(8)]
-    jogo.tabuleiro.tabuleiro[5][0] = 'B'
-    assert jogo.validar_movimento((5, 0), (4, 1)) is True
+def test_movimentos_validos_peao_branco():
+    tab = Tabuleiro()
+    peao = Peao('B')
+    tab.tabuleiro[5][2] = peao
+    tab.tabuleiro[4][3] = None
+    movimentos = peao.movimentos_validos((5, 2), tab)
+    assert (4, 3) in movimentos
 
-def test_movimento_invalido_destino_ocupado():
-    jogo = Jogo()
-    jogo.tabuleiro.tabuleiro = [[None for _ in range(8)] for _ in range(8)]
-    jogo.tabuleiro.tabuleiro[5][0] = Peao('B')
-    jogo.tabuleiro.tabuleiro[4][1] = Peao('P')
-    assert jogo.validar_movimento((5, 0), (4, 1)) is False
+def test_peao_pode_capturar():
+    tab = Tabuleiro()
+    peao = Peao('B')
+    inimigo = Peao('P')
+    tab.tabuleiro[5][2] = peao
+    tab.tabuleiro[4][3] = inimigo
+    tab.tabuleiro[3][4] = None
+    movimentos = peao.movimentos_validos((5, 2), tab)
+    assert (3, 4) in movimentos
+
+def test_dama_movimenta_em_diagonal():
+    tab = Tabuleiro()
+    dama = Dama('P')
+    tab.tabuleiro[4][4] = dama
+    movimentos = dama.movimentos_validos((4, 4), tab)
+    assert (3, 3) in movimentos
+    assert (2, 2) in movimentos
+    assert (5, 5) in movimentos
