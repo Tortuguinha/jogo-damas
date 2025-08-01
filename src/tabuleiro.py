@@ -74,13 +74,17 @@ class Tabuleiro:
                 j += step_col
 
         # Atualiza posições da peça
-        self.tabuleiro[destino[0]][destino[1]] = peca
-        self.tabuleiro[origem[0]][origem[1]] = None
+        self.tabuleiro[linha_d][col_d] = peca
+        self.tabuleiro[linha_o][col_o] = None
 
         # ---- Promoção a dama ----
+        promovido = False
         if isinstance(peca, Peao):
             if (peca.cor == 'B' and linha_d == 0) or (peca.cor == 'P' and linha_d == self.tamanho - 1):
-                self.tabuleiro[destino[0]][destino[1]] = Dama(peca.cor)
+                self.tabuleiro[linha_d][col_d] = Dama(peca.cor)
+                promovido = True
+
+        return promovido
 
 class Peca:
     def __init__(self, cor):

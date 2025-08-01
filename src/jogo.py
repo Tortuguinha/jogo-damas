@@ -1,16 +1,12 @@
 from .tabuleiro import Tabuleiro, Peao, Dama
-from .ui_base import UIBase  # Importar a interface base
+from .ui_base import UIBase
 
 class Jogo:
     def __init__(self, ui: UIBase, tabuleiro=None):
-        if tabuleiro is None:
-            self.tabuleiro = Tabuleiro()
-        else:
-            self.tabuleiro = tabuleiro
+        self.tabuleiro = tabuleiro if tabuleiro else Tabuleiro()
         self.turno = 'B'
         self.ui = ui
-        # Sincroniza o tabuleiro da UI com o do jogo
-        self.ui.tabuleiro = self.tabuleiro
+        self.ui.tabuleiro = self.tabuleiro  # UI pode validar posições
 
     def alternar_turno(self):
         self.turno = 'P' if self.turno == 'B' else 'B'
@@ -28,30 +24,12 @@ class Jogo:
             return False
         return True
 
-    def mover_peca(self, origem, destino):
-        peca = self.tabuleiro.obter_peca(origem)
-        if not peca:
-            self.ui.mostrar_mensagem("Não há peça na origem")
-            return False, False  # Não moveu, sem promoção
-
-        self.tabuleiro.mover_peca(origem, destino)
-
-        linha_d, _ = destino
-        promovido = False
-        if isinstance(peca, Peao):
-            if (peca.cor == 'B' and linha_d == 0) or (peca.cor == 'P' and linha_d == self.tabuleiro.tamanho -1):
-                self.ui.mostrar_mensagem(f"Peça {peca.cor} promovida a Dama!")
-                promovido = True
-
-        return True, promovido
-
     def verificar_captura_disponivel(self, pos):
         peca = self.tabuleiro.obter_peca(pos)
         if not peca:
             return False
 
-        movimentos = peca.movimentos_validos(pos, self.tabuleiro)
-        for mov in movimentos:
+        for mov in peca.movimentos_validos(pos, self.tabuleiro):
             if abs(mov[0] - pos[0]) > 1:
                 return True
         return False
@@ -61,8 +39,7 @@ class Jogo:
             for coluna in range(self.tabuleiro.tamanho):
                 peca = self.tabuleiro.obter_peca((linha, coluna))
                 if peca and peca.cor == cor:
-                    movimentos = peca.movimentos_validos((linha, coluna), self.tabuleiro)
-                    if movimentos:
+                    if peca.movimentos_validos((linha, coluna), self.tabuleiro):
                         return False
         return True
 
@@ -75,17 +52,24 @@ class Jogo:
                 self.ui.mostrar_mensagem("Jogo encerrado pelo usuário.")
                 break
 
-            if self.validar_movimento(origem, destino):
-                moveu, promovido = self.mover_peca(origem, destino)
+            if not self.validar_movimento(origem, destino):
+                continue
 
-                linha_o, col_o = origem
-                linha_d, col_d = destino
+            linha_o, col_o = origem
+            linha_d, col_d = destino
 
-                # Só continua a captura múltipla se NÃO houve promoção
-                if not promovido and abs(linha_d - linha_o) == 2:
-                    nova_origem = destino
+            promovido = self.tabuleiro.mover_peca(origem, destino)
+            if promovido:
+                self.ui.mostrar_mensagem(f"Peça {self.turno} promovida a Dama!")
 
-                    while self.verificar_captura_disponivel(nova_origem):
+            # Verifica se houve captura (2 ou mais casas de distância)
+            if abs(linha_d - linha_o) > 1:
+                nova_origem = destino
+                peca = self.tabuleiro.obter_peca(nova_origem)
+
+                # Só permite continuar se a peça NÃO foi promovida
+                if isinstance(peca, Peao):
+                    while not promovido and self.verificar_captura_disponivel(nova_origem):
                         self.tabuleiro.mostrar()
                         self.ui.mostrar_mensagem("Você pode capturar outra peça!")
                         novo_destino = self.ui.ler_movimento_continuacao(nova_origem)
@@ -95,16 +79,17 @@ class Jogo:
                             return
 
                         if self.validar_movimento(nova_origem, novo_destino):
-                            self.mover_peca(nova_origem, novo_destino)
+                            promovido = self.tabuleiro.mover_peca(nova_origem, novo_destino)
                             nova_origem = novo_destino
+                            if promovido:
+                                self.ui.mostrar_mensagem(f"Peça {self.turno} promovida a Dama!")
+                                break
                         else:
                             self.ui.mostrar_mensagem("Movimento inválido na sequência de capturas.")
                             break
 
-                self.alternar_turno()
-                if self.fim_de_jogo(self.turno):
-                    self.ui.mostrar_mensagem(f"\nJogador {'Brancas' if self.turno == 'B' else 'Pretas'} não tem mais movimentos.")
-                    self.ui.mostrar_mensagem(f"Jogador {'Pretas' if self.turno == 'B' else 'Brancas'} venceu!")
-                    break
-            else:
-                self.ui.mostrar_mensagem("Movimento inválido, tente novamente.")
+            self.alternar_turno()
+            if self.fim_de_jogo(self.turno):
+                self.ui.mostrar_mensagem(f"\nJogador {'Brancas' if self.turno == 'B' else 'Pretas'} não tem mais movimentos.")
+                self.ui.mostrar_mensagem(f"Jogador {'Pretas' if self.turno == 'B' else 'Brancas'} venceu!")
+                break
