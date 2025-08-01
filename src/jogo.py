@@ -1,10 +1,11 @@
 from .tabuleiro import Tabuleiro, Peao, Dama
-from .ui import ler_movimento, ler_movimento_continuacao
+from .ui_base import UIBase  # Importar a interface base
 
 class Jogo:
-    def __init__(self):
+    def __init__(self, ui: UIBase):
         self.tabuleiro = Tabuleiro()
         self.turno = 'B'  # 'B' para brancas, 'P' para pretas
+        self.ui = ui
 
     def alternar_turno(self):
         self.turno = 'P' if self.turno == 'B' else 'B'
@@ -12,29 +13,28 @@ class Jogo:
     def validar_movimento(self, origem, destino):
         peca = self.tabuleiro.obter_peca(origem)
         if not peca:
-            print("Não há peça na posição de origem.")
+            self.ui.mostrar_mensagem("Não há peça na posição de origem.")
             return False
         if peca.cor != self.turno:
-            print("Você só pode mover suas próprias peças.")
+            self.ui.mostrar_mensagem("Você só pode mover suas próprias peças.")
             return False
         if not self.tabuleiro.movimento_valido(origem, destino):
-            print("Movimento inválido para essa peça.")
+            self.ui.mostrar_mensagem("Movimento inválido para essa peça.")
             return False
         return True
 
     def mover_peca(self, origem, destino):
         peca = self.tabuleiro.obter_peca(origem)
         if not peca:
-            print("Não há peça na origem")
+            self.ui.mostrar_mensagem("Não há peça na origem")
             return False
 
         self.tabuleiro.mover_peca(origem, destino)
 
-        # Promoção é tratada dentro do Tabuleiro.mover_peca
         linha_d, _ = destino
         if isinstance(peca, Peao):
             if (peca.cor == 'B' and linha_d == 0) or (peca.cor == 'P' and linha_d == self.tabuleiro.tamanho -1):
-                print(f"Peça {peca.cor} promovida a Dama!")
+                self.ui.mostrar_mensagem(f"Peça {peca.cor} promovida a Dama!")
 
         return True
 
@@ -50,9 +50,6 @@ class Jogo:
         return False
 
     def fim_de_jogo(self, cor):
-        """
-        Verifica se o jogador da cor especificada ainda possui peças com movimentos válidos.
-        """
         for linha in range(self.tabuleiro.tamanho):
             for coluna in range(self.tabuleiro.tamanho):
                 peca = self.tabuleiro.obter_peca((linha, coluna))
@@ -65,10 +62,10 @@ class Jogo:
     def jogar(self):
         while True:
             self.tabuleiro.mostrar()
-            origem, destino = ler_movimento(self.turno)
+            origem, destino = self.ui.ler_movimento(self.turno)
 
             if origem is None or destino is None:
-                print("Jogo encerrado pelo usuário.")
+                self.ui.mostrar_mensagem("Jogo encerrado pelo usuário.")
                 break
 
             if self.validar_movimento(origem, destino):
@@ -81,25 +78,24 @@ class Jogo:
 
                     while self.verificar_captura_disponivel(nova_origem):
                         self.tabuleiro.mostrar()
-                        print("Você pode capturar outra peça!")
-                        novo_destino = ler_movimento_continuacao(nova_origem)
+                        self.ui.mostrar_mensagem("Você pode capturar outra peça!")
+                        novo_destino = self.ui.ler_movimento_continuacao(nova_origem)
 
                         if novo_destino is None:
-                            print("Jogo encerrado pelo usuário.")
+                            self.ui.mostrar_mensagem("Jogo encerrado pelo usuário.")
                             return
 
                         if self.validar_movimento(nova_origem, novo_destino):
                             self.mover_peca(nova_origem, novo_destino)
                             nova_origem = novo_destino
                         else:
-                            print("Movimento inválido na sequência de capturas.")
+                            self.ui.mostrar_mensagem("Movimento inválido na sequência de capturas.")
                             break
 
-                # Verificar fim de jogo antes de alternar turno
                 self.alternar_turno()
                 if self.fim_de_jogo(self.turno):
-                    print(f"\nJogador {'Brancas' if self.turno == 'B' else 'Pretas'} não tem mais movimentos.")
-                    print(f"Jogador {'Pretas' if self.turno == 'B' else 'Brancas'} venceu!")
+                    self.ui.mostrar_mensagem(f"\nJogador {'Brancas' if self.turno == 'B' else 'Pretas'} não tem mais movimentos.")
+                    self.ui.mostrar_mensagem(f"Jogador {'Pretas' if self.turno == 'B' else 'Brancas'} venceu!")
                     break
             else:
-                print("Movimento inválido, tente novamente.")
+                self.ui.mostrar_mensagem("Movimento inválido, tente novamente.")
