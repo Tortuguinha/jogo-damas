@@ -2,19 +2,20 @@ import pygame
 import sys
 
 # Cores
-CINZA_ESCURO = (40, 40, 40)
-BRANCO = (255, 255, 255)
-VERDE = (0, 200, 0)
-VERMELHO = (200, 0, 0)
-VERDE_CLARO = (0, 255, 0)
-VERMELHO_CLARO = (255, 50, 50)
+FUNDO = (30, 30, 30)
+BRANCO = (240, 240, 240)
+VERDE = (46, 204, 113)
+VERDE_CLARO = (67, 224, 138)
+VERMELHO = (231, 76, 60)
+VERMELHO_CLARO = (250, 105, 95)
+
+pygame.font.init()
+FONTE_TITULO = pygame.font.SysFont("Segoe UI", 48, bold=True)
+FONTE_BOTOES = pygame.font.SysFont("Segoe UI", 32)
 
 def desenhar_botao(tela, texto, fonte, cor_base, cor_hover, rect, mouse_pos):
-    if rect.collidepoint(mouse_pos):
-        pygame.draw.rect(tela, cor_hover, rect)
-    else:
-        pygame.draw.rect(tela, cor_base, rect)
-
+    cor = cor_hover if rect.collidepoint(mouse_pos) else cor_base
+    pygame.draw.rect(tela, cor, rect, border_radius=12)
     texto_render = fonte.render(texto, True, BRANCO)
     texto_rect = texto_render.get_rect(center=rect.center)
     tela.blit(texto_render, texto_rect)
@@ -23,25 +24,28 @@ def mostrar_menu():
     pygame.init()
     tela = pygame.display.set_mode((640, 640))
     pygame.display.set_caption("Menu - Jogo de Damas")
-    fonte = pygame.font.SysFont("arial", 36)
+    relogio = pygame.time.Clock()
 
-    # Botões
-    botao_iniciar = pygame.Rect(220, 250, 200, 60)
-    botao_sair = pygame.Rect(220, 350, 200, 60)
+    botao_iniciar = pygame.Rect(220, 280, 200, 70)
+    botao_sair = pygame.Rect(220, 380, 200, 70)
 
     while True:
-        tela.fill(CINZA_ESCURO)
+        tela.fill(FUNDO)
         mouse_pos = pygame.mouse.get_pos()
 
-        # Título
-        titulo = fonte.render("Jogo de Damas", True, BRANCO)
-        tela.blit(titulo, (200, 150))
+        titulo = FONTE_TITULO.render("Jogo de Damas", True, BRANCO)
+        texto_rect = titulo.get_rect(center=(640 // 2, 150))
+        # sombra para profundidade
+        sombra = FONTE_TITULO.render("Jogo de Damas", True, (0, 0, 0))
+        sombra_rect = sombra.get_rect(center=(640 // 2 + 2, 150 + 2))
+        tela.blit(sombra, sombra_rect)
+        tela.blit(titulo, texto_rect)
 
-        # Botões
-        desenhar_botao(tela, "Iniciar Jogo", fonte, VERDE, VERDE_CLARO, botao_iniciar, mouse_pos)
-        desenhar_botao(tela, "Sair", fonte, VERMELHO, VERMELHO_CLARO, botao_sair, mouse_pos)
+        desenhar_botao(tela, "Iniciar Jogo", FONTE_BOTOES, VERDE, VERDE_CLARO, botao_iniciar, mouse_pos)
+        desenhar_botao(tela, "Sair", FONTE_BOTOES, VERMELHO, VERMELHO_CLARO, botao_sair, mouse_pos)
 
         pygame.display.flip()
+        relogio.tick(60)
 
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:

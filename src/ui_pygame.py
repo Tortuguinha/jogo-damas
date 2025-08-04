@@ -1,19 +1,7 @@
 import pygame, time
 from .ui_base import UIBase
-from .tabuleiro import Tabuleiro, Peao, Dama
-
-# Cores
-BRANCO = (255, 255, 255)
-PRETO = (0, 0, 0)
-VERMELHO = (200, 0, 0)
-CINZA = (100, 100, 100)
-BEGE = (240, 217, 181)
-MARROM = (181, 136, 99)
-AZUL = (0, 0, 255)
-SELECAO_COR = (0, 255, 0, 100)
-
-TAMANHO_CASA = 80
-TAMANHO_JANELA = TAMANHO_CASA * 8
+from .tabuleiro import Tabuleiro, Dama
+from .cores import PRETO, BRANCO, VERMELHO, VERDE, AZUL
 
 class UIPygame(UIBase):
     def __init__(self, tabuleiro):
@@ -28,77 +16,64 @@ class UIPygame(UIBase):
         self.rodando = True
         self.mensagem = ""
 
-        # ⏱️ Cronômetros
-        self.tempo_branco = 0
-        self.tempo_preto = 0
+        # ⏱️ Cronômetros iniciam em 5 minutos (300 segundos)
+        self.tempo_branco = 300.0
+        self.tempo_preto = 300.0
+
         self.inicio_turno = None
         self.turno_atual = None
 
     def desenhar_cronometros(self):
-        tempo_b = int(self.tempo_branco)
-        tempo_p = int(self.tempo_preto)
+        # Exibir minutos e segundos no formato mm:ss
+        def formatar_tempo(segundos):
+            if segundos < 0:
+                segundos = 0
+            m = int(segundos) // 60
+            s = int(segundos) % 60
+            return f"{m:02d}:{s:02d}"
 
-        texto_b = self.fonte.render(f"Brancas: {tempo_b}s", True, BRANCO)
-        texto_p = self.fonte.render(f"Pretas: {tempo_p}s", True, BRANCO)
+        texto_b = self.fonte.render(f"Brancas: {formatar_tempo(self.tempo_branco)}", True, BRANCO)
+        texto_p = self.fonte.render(f"Pretas: {formatar_tempo(self.tempo_preto)}", True, BRANCO)
 
         self.tela.blit(texto_b, (10, 10))
         self.tela.blit(texto_p, (10, 40))
 
-    def desenhar_tabuleiro(self):
-        for linha in range(8):
-            for col in range(8):
-                cor = BEGE if (linha + col) % 2 == 0 else MARROM
-                pygame.draw.rect(self.tela, cor, (col*TAMANHO_CASA, linha*TAMANHO_CASA, TAMANHO_CASA, TAMANHO_CASA))
-
-    def desenhar_pecas(self):
-        for linha in range(8):
-            for col in range(8):
-                peca = self.tabuleiro.tabuleiro[linha][col]
-                if peca:
-                    cor = BRANCO if peca.cor == 'B' else PRETO
-                    centro = (col * TAMANHO_CASA + TAMANHO_CASA//2, linha * TAMANHO_CASA + TAMANHO_CASA//2)
-                    pygame.draw.circle(self.tela, cor, centro, 30)
-
-                    if isinstance(peca, Dama):
-                        pygame.draw.circle(self.tela, VERMELHO, centro, 34, 3)
-
-    def desenhar_selecao(self):
-        if self.selecionado:
-            linha, col = self.selecionado
-            rect = pygame.Rect(col*TAMANHO_CASA, linha*TAMANHO_CASA, TAMANHO_CASA, TAMANHO_CASA)
-            pygame.draw.rect(self.tela, AZUL, rect, 4)
-
-            for mov in self.movimentos_validos:
-                linha_m, col_m = mov
-                centro = (col_m * TAMANHO_CASA + TAMANHO_CASA//2, linha_m * TAMANHO_CASA + TAMANHO_CASA//2)
-                pygame.draw.circle(self.tela, AZUL, centro, 15, 3)
-
-    def mostrar_mensagem(self, mensagem):
-        self.mensagem = mensagem
-        print(mensagem)
-
-    def desenhar_mensagem(self):
-        if self.mensagem:
-            texto = self.fonte.render(self.mensagem, True, VERMELHO)
-            self.tela.blit(texto, (10, TAMANHO_JANELA - 30))
-
     def pos_click_para_casa(self, pos):
         x, y = pos
-        linha = y // TAMANHO_CASA
-        col = x // TAMANHO_CASA
-        if 0 <= linha < 8 and 0 <= col < 8:
-            return (linha, col)
-        return None
+        tamanho_casa = self.tela.get_width() // self.tabuleiro.tamanho
+        coluna = x // tamanho_casa
+        linha = y // tamanho_casa
+
+        if 0 <= linha < self.tabuleiro.tamanho and 0 <= coluna < self.tabuleiro.tamanho:
+            return (linha, coluna)
+        else:
+            return None
 
     def ler_movimento(self, turno):
-        self.inicio_turno = time.time()
-        self.turno_atual = turno
-        self.selecionado = None
-        self.movimentos_validos = []
+        # Ao iniciar a leitura do movimento, define o turno atual e registra o tempo inicial
+        if self.turno_atual != turno:
+            # mudou o turno, atualiza o tempo do turno anterior antes de trocar
+            self.atualizar_tempo_turno()
+            self.turno_atual = turno
+            self.inicio_turno = time.time()
+        elif self.inicio_turno is None:
+            self.inicio_turno = time.time()
+
         origem = None
         destino = None
 
         while True:
+            # Atualiza o cronômetro a cada loop
+            self.atualizar_tempo_turno()
+
+            # Se algum jogador zerar o tempo, encerra o jogo (retornando None, None)
+            if self.tempo_branco <= 0:
+                self.mostrar_mensagem("Tempo esgotado! Jogador das Brancas perdeu!")
+                return None, None
+            if self.tempo_preto <= 0:
+                self.mostrar_mensagem("Tempo esgotado! Jogador das Pretas perdeu!")
+                return None, None
+
             for evento in pygame.event.get():
                 if evento.type == pygame.QUIT:
                     return None, None
@@ -142,14 +117,9 @@ class UIPygame(UIBase):
                             self.movimentos_validos = []
                             self.mostrar_mensagem("")
 
-                            # ⏱️ Finaliza tempo do turno
-                            if self.inicio_turno:
-                                tempo_passado = time.time() - self.inicio_turno
-                                if self.turno_atual == 'B':
-                                    self.tempo_branco += tempo_passado
-                                else:
-                                    self.tempo_preto += tempo_passado
-                                self.inicio_turno = None
+                            # Atualiza tempo antes de finalizar o movimento
+                            self.atualizar_tempo_turno()
+                            self.inicio_turno = None  # Pausa o cronômetro até o próximo turno
 
                             return origem, destino
                         else:
@@ -163,11 +133,40 @@ class UIPygame(UIBase):
             self.desenhar_cronometros()
             pygame.display.flip()
 
+    def atualizar_tempo_turno(self):
+        if self.inicio_turno is None or self.turno_atual is None:
+            return
+
+        tempo_agora = time.time()
+        tempo_passado = tempo_agora - self.inicio_turno
+
+        if self.turno_atual == 'B':
+            self.tempo_branco -= tempo_passado
+        else:
+            self.tempo_preto -= tempo_passado
+
+        self.inicio_turno = tempo_agora  # reinicia o timer para próxima medição
+
+    # O método ler_movimento_continuacao deve usar o mesmo sistema para o tempo
     def ler_movimento_continuacao(self, origem):
         self.selecionado = origem
         self.movimentos_validos = self.tabuleiro.movimentos_validos_para_peca(origem)
 
+        if self.inicio_turno is None:
+            self.inicio_turno = time.time()
+
         while True:
+            # Atualiza o cronômetro a cada loop
+            self.atualizar_tempo_turno()
+
+            # Verifica se tempo acabou
+            if self.tempo_branco <= 0:
+                self.mostrar_mensagem("Tempo esgotado! Jogador das Brancas perdeu!")
+                return None
+            if self.tempo_preto <= 0:
+                self.mostrar_mensagem("Tempo esgotado! Jogador das Pretas perdeu!")
+                return None
+
             for evento in pygame.event.get():
                 if evento.type == pygame.QUIT:
                     return None
@@ -180,6 +179,7 @@ class UIPygame(UIBase):
                         self.mostrar_mensagem("")
                         self.selecionado = None
                         self.movimentos_validos = []
+                        self.inicio_turno = None  # Pausa o cronômetro após movimento continuar
                         return pos_casa
                     else:
                         self.mostrar_mensagem("Movimento inválido. Escolha um destino válido.")
@@ -191,3 +191,49 @@ class UIPygame(UIBase):
             self.desenhar_mensagem()
             self.desenhar_cronometros()
             pygame.display.flip()
+
+    def desenhar_mensagem(self):
+        if self.mensagem:
+            texto = self.fonte.render(self.mensagem, True, (255, 255, 255))
+            rect = texto.get_rect(center=(self.tela.get_width() // 2, self.tela.get_height() - 30))
+            self.tela.blit(texto, rect)
+
+    def desenhar_tabuleiro(self):
+        tamanho_casa = self.tela.get_width() // self.tabuleiro.tamanho
+        cores = [(235, 209, 166), (165, 117, 81)]  # cores claras e escuras das casas
+
+        for linha in range(self.tabuleiro.tamanho):
+            for coluna in range(self.tabuleiro.tamanho):
+                cor = cores[(linha + coluna) % 2]
+                rect = pygame.Rect(coluna * tamanho_casa, linha * tamanho_casa, tamanho_casa, tamanho_casa)
+                pygame.draw.rect(self.tela, cor, rect)
+
+    def desenhar_pecas(self):
+        tamanho_casa = self.tela.get_width() // self.tabuleiro.tamanho
+        for linha in range(self.tabuleiro.tamanho):
+            for coluna in range(self.tabuleiro.tamanho):
+                peca = self.tabuleiro.obter_peca((linha, coluna))
+                if peca:
+                    cor_peca = (255, 255, 255) if peca.cor == 'B' else (0, 0, 0)
+                    centro = (coluna * tamanho_casa + tamanho_casa // 2, linha * tamanho_casa + tamanho_casa // 2)
+                    pygame.draw.circle(self.tela, cor_peca, centro, tamanho_casa // 2 - 10)
+
+                    if isinstance(peca, Dama):
+                        pygame.draw.circle(self.tela, (255, 215, 0), centro, tamanho_casa // 4)  # Marcação para dama
+
+    def desenhar_selecao(self):
+        if self.selecionado:
+            tamanho_casa = self.tela.get_width() // self.tabuleiro.tamanho
+            linha, coluna = self.selecionado
+            rect = pygame.Rect(coluna * tamanho_casa, linha * tamanho_casa, tamanho_casa, tamanho_casa)
+            pygame.draw.rect(self.tela, (255, 255, 0), rect, 3)  # contorno amarelo na seleção
+
+            # Destaca os movimentos válidos
+            for mov in self.movimentos_validos:
+                linha_m, col_m = mov
+                centro = (col_m * tamanho_casa + tamanho_casa // 2, linha_m * tamanho_casa + tamanho_casa // 2)
+                pygame.draw.circle(self.tela, (0, 255, 0), centro, 10)
+
+    def mostrar_mensagem(self, mensagem):
+        self.mensagem = mensagem
+        print(mensagem)  # Você pode imprimir no console também
