@@ -1,5 +1,5 @@
-import pygame
-import sys
+import pygame, sys
+from src.menu_historico import mostrar_historico_pygame
 
 # Cores
 FUNDO = (30, 30, 30)
@@ -22,38 +22,43 @@ def desenhar_botao(tela, texto, fonte, cor_base, cor_hover, rect, mouse_pos):
 
 def mostrar_menu():
     pygame.init()
-    tela = pygame.display.set_mode((640, 640))
-    pygame.display.set_caption("Menu - Jogo de Damas")
+    tela = pygame.display.set_mode((640, 480))
+    pygame.display.set_caption("Menu Principal")
+    fonte = pygame.font.SysFont("Segoe UI", 36)
     relogio = pygame.time.Clock()
 
-    botao_iniciar = pygame.Rect(220, 280, 200, 70)
-    botao_sair = pygame.Rect(220, 380, 200, 70)
+    # Exemplo de histórico (substitua pelo seu real)
+    historico = [
+    ]
 
-    while True:
+    botao_jogar = pygame.Rect(220, 150, 200, 50)
+    botao_historico = pygame.Rect(220, 230, 200, 50)
+    botao_sair = pygame.Rect(220, 310, 200, 50)
+
+    rodando = True
+    while rodando:
         tela.fill(FUNDO)
         mouse_pos = pygame.mouse.get_pos()
 
-        titulo = FONTE_TITULO.render("Jogo de Damas", True, BRANCO)
-        texto_rect = titulo.get_rect(center=(640 // 2, 150))
-        # sombra para profundidade
-        sombra = FONTE_TITULO.render("Jogo de Damas", True, (0, 0, 0))
-        sombra_rect = sombra.get_rect(center=(640 // 2 + 2, 150 + 2))
-        tela.blit(sombra, sombra_rect)
-        tela.blit(titulo, texto_rect)
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                rodando = False
+            elif evento.type == pygame.MOUSEBUTTONDOWN:
+                if botao_jogar.collidepoint(evento.pos):
+                    return True
+                elif botao_historico.collidepoint(evento.pos):
+                    # Passa tela, fonte e histórico para mostrar a tela de histórico
+                    mostrar_historico_pygame(tela, fonte, historico)
+                elif botao_sair.collidepoint(evento.pos):
+                    rodando = False
 
-        desenhar_botao(tela, "Iniciar Jogo", FONTE_BOTOES, VERDE, VERDE_CLARO, botao_iniciar, mouse_pos)
-        desenhar_botao(tela, "Sair", FONTE_BOTOES, VERMELHO, VERMELHO_CLARO, botao_sair, mouse_pos)
+        # Desenhar botões com efeito hover
+        desenhar_botao(tela, "Jogar", fonte, (52, 152, 219), (72, 172, 239), botao_jogar, mouse_pos)
+        desenhar_botao(tela, "Histórico", fonte, (52, 152, 219), (72, 172, 239), botao_historico, mouse_pos)
+        desenhar_botao(tela, "Sair", fonte, (200, 60, 60), (220, 80, 80), botao_sair, mouse_pos)
 
         pygame.display.flip()
         relogio.tick(60)
 
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif evento.type == pygame.MOUSEBUTTONDOWN:
-                if botao_iniciar.collidepoint(evento.pos):
-                    return True
-                elif botao_sair.collidepoint(evento.pos):
-                    pygame.quit()
-                    sys.exit()
+    pygame.quit()
+    return False

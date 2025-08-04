@@ -1,7 +1,7 @@
-import pygame, time
+import pygame, sys
 from .ui_base import UIBase
 from .tabuleiro import Tabuleiro, Dama
-from .cores import PRETO, BRANCO, VERMELHO, VERDE, AZUL
+from .cores import PRETO, BRANCO
 
 class UIPygame(UIBase):
     def __init__(self, tabuleiro):
@@ -13,30 +13,7 @@ class UIPygame(UIBase):
 
         self.selecionado = None
         self.movimentos_validos = []
-        self.rodando = True
         self.mensagem = ""
-
-        # ⏱️ Cronômetros iniciam em 5 minutos (300 segundos)
-        self.tempo_branco = 300.0
-        self.tempo_preto = 300.0
-
-        self.inicio_turno = None
-        self.turno_atual = None
-
-    def desenhar_cronometros(self):
-        # Exibir minutos e segundos no formato mm:ss
-        def formatar_tempo(segundos):
-            if segundos < 0:
-                segundos = 0
-            m = int(segundos) // 60
-            s = int(segundos) % 60
-            return f"{m:02d}:{s:02d}"
-
-        texto_b = self.fonte.render(f"Brancas: {formatar_tempo(self.tempo_branco)}", True, BRANCO)
-        texto_p = self.fonte.render(f"Pretas: {formatar_tempo(self.tempo_preto)}", True, BRANCO)
-
-        self.tela.blit(texto_b, (10, 10))
-        self.tela.blit(texto_p, (10, 40))
 
     def pos_click_para_casa(self, pos):
         x, y = pos
@@ -50,33 +27,14 @@ class UIPygame(UIBase):
             return None
 
     def ler_movimento(self, turno):
-        # Ao iniciar a leitura do movimento, define o turno atual e registra o tempo inicial
-        if self.turno_atual != turno:
-            # mudou o turno, atualiza o tempo do turno anterior antes de trocar
-            self.atualizar_tempo_turno()
-            self.turno_atual = turno
-            self.inicio_turno = time.time()
-        elif self.inicio_turno is None:
-            self.inicio_turno = time.time()
-
         origem = None
         destino = None
 
         while True:
-            # Atualiza o cronômetro a cada loop
-            self.atualizar_tempo_turno()
-
-            # Se algum jogador zerar o tempo, encerra o jogo (retornando None, None)
-            if self.tempo_branco <= 0:
-                self.mostrar_mensagem("Tempo esgotado! Jogador das Brancas perdeu!")
-                return None, None
-            if self.tempo_preto <= 0:
-                self.mostrar_mensagem("Tempo esgotado! Jogador das Pretas perdeu!")
-                return None, None
-
             for evento in pygame.event.get():
                 if evento.type == pygame.QUIT:
-                    return None, None
+                    pygame.quit()
+                    sys.exit()  # fecha o programa imediatamente
                 elif evento.type == pygame.MOUSEBUTTONDOWN:
                     pos_casa = self.pos_click_para_casa(evento.pos)
                     if pos_casa is None:
@@ -116,11 +74,6 @@ class UIPygame(UIBase):
                             self.selecionado = None
                             self.movimentos_validos = []
                             self.mostrar_mensagem("")
-
-                            # Atualiza tempo antes de finalizar o movimento
-                            self.atualizar_tempo_turno()
-                            self.inicio_turno = None  # Pausa o cronômetro até o próximo turno
-
                             return origem, destino
                         else:
                             self.mostrar_mensagem("Movimento inválido. Escolha um destino válido.")
@@ -130,46 +83,17 @@ class UIPygame(UIBase):
             self.desenhar_pecas()
             self.desenhar_selecao()
             self.desenhar_mensagem()
-            self.desenhar_cronometros()
             pygame.display.flip()
 
-    def atualizar_tempo_turno(self):
-        if self.inicio_turno is None or self.turno_atual is None:
-            return
-
-        tempo_agora = time.time()
-        tempo_passado = tempo_agora - self.inicio_turno
-
-        if self.turno_atual == 'B':
-            self.tempo_branco -= tempo_passado
-        else:
-            self.tempo_preto -= tempo_passado
-
-        self.inicio_turno = tempo_agora  # reinicia o timer para próxima medição
-
-    # O método ler_movimento_continuacao deve usar o mesmo sistema para o tempo
     def ler_movimento_continuacao(self, origem):
         self.selecionado = origem
         self.movimentos_validos = self.tabuleiro.movimentos_validos_para_peca(origem)
 
-        if self.inicio_turno is None:
-            self.inicio_turno = time.time()
-
         while True:
-            # Atualiza o cronômetro a cada loop
-            self.atualizar_tempo_turno()
-
-            # Verifica se tempo acabou
-            if self.tempo_branco <= 0:
-                self.mostrar_mensagem("Tempo esgotado! Jogador das Brancas perdeu!")
-                return None
-            if self.tempo_preto <= 0:
-                self.mostrar_mensagem("Tempo esgotado! Jogador das Pretas perdeu!")
-                return None
-
             for evento in pygame.event.get():
                 if evento.type == pygame.QUIT:
-                    return None
+                    pygame.quit()
+                    sys.exit()  # fecha o programa imediatamente
                 elif evento.type == pygame.MOUSEBUTTONDOWN:
                     pos_casa = self.pos_click_para_casa(evento.pos)
                     if pos_casa is None:
@@ -179,7 +103,6 @@ class UIPygame(UIBase):
                         self.mostrar_mensagem("")
                         self.selecionado = None
                         self.movimentos_validos = []
-                        self.inicio_turno = None  # Pausa o cronômetro após movimento continuar
                         return pos_casa
                     else:
                         self.mostrar_mensagem("Movimento inválido. Escolha um destino válido.")
@@ -189,7 +112,6 @@ class UIPygame(UIBase):
             self.desenhar_pecas()
             self.desenhar_selecao()
             self.desenhar_mensagem()
-            self.desenhar_cronometros()
             pygame.display.flip()
 
     def desenhar_mensagem(self):
@@ -236,4 +158,4 @@ class UIPygame(UIBase):
 
     def mostrar_mensagem(self, mensagem):
         self.mensagem = mensagem
-        print(mensagem)  # Você pode imprimir no console também
+        print(mensagem)  # para debug também
