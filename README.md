@@ -13,7 +13,7 @@ Este é um projeto pessoal de um jogo de damas programado em Python. O objetivo 
 - [X] Regras de promoção (dama)
 - [X] Regras de vitória
 - [X] Interface com `pygame`
-- [ ] IA oponente (futuramente)
+- [X] IA oponente (futuramente)
 
 ---
 
