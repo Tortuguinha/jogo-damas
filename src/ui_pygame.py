@@ -1,4 +1,4 @@
-import pygame
+import pygame, time
 from .ui_base import UIBase
 from .tabuleiro import Tabuleiro, Peao, Dama
 
@@ -10,24 +10,39 @@ CINZA = (100, 100, 100)
 BEGE = (240, 217, 181)
 MARROM = (181, 136, 99)
 AZUL = (0, 0, 255)
-SELECAO_COR = (0, 255, 0, 100)  # Verde translúcido para seleção
+SELECAO_COR = (0, 255, 0, 100)
 
 TAMANHO_CASA = 80
 TAMANHO_JANELA = TAMANHO_CASA * 8
 
 class UIPygame(UIBase):
-    def __init__(self):
+    def __init__(self, tabuleiro):
+        super().__init__(tabuleiro)
         pygame.init()
-        self.tela = pygame.display.set_mode((TAMANHO_JANELA, TAMANHO_JANELA))
+        self.tela = pygame.display.set_mode((640, 640))
         pygame.display.set_caption("Jogo de Damas")
         self.fonte = pygame.font.SysFont("arial", 24)
-        self.tabuleiro = Tabuleiro()
 
         self.selecionado = None
         self.movimentos_validos = []
-
         self.rodando = True
         self.mensagem = ""
+
+        # ⏱️ Cronômetros
+        self.tempo_branco = 0
+        self.tempo_preto = 0
+        self.inicio_turno = None
+        self.turno_atual = None
+
+    def desenhar_cronometros(self):
+        tempo_b = int(self.tempo_branco)
+        tempo_p = int(self.tempo_preto)
+
+        texto_b = self.fonte.render(f"Brancas: {tempo_b}s", True, BRANCO)
+        texto_p = self.fonte.render(f"Pretas: {tempo_p}s", True, BRANCO)
+
+        self.tela.blit(texto_b, (10, 10))
+        self.tela.blit(texto_p, (10, 40))
 
     def desenhar_tabuleiro(self):
         for linha in range(8):
@@ -53,7 +68,6 @@ class UIPygame(UIBase):
             rect = pygame.Rect(col*TAMANHO_CASA, linha*TAMANHO_CASA, TAMANHO_CASA, TAMANHO_CASA)
             pygame.draw.rect(self.tela, AZUL, rect, 4)
 
-            # Destacar movimentos válidos
             for mov in self.movimentos_validos:
                 linha_m, col_m = mov
                 centro = (col_m * TAMANHO_CASA + TAMANHO_CASA//2, linha_m * TAMANHO_CASA + TAMANHO_CASA//2)
@@ -61,7 +75,7 @@ class UIPygame(UIBase):
 
     def mostrar_mensagem(self, mensagem):
         self.mensagem = mensagem
-        print(mensagem)  # também imprime no console para debug
+        print(mensagem)
 
     def desenhar_mensagem(self):
         if self.mensagem:
@@ -77,6 +91,8 @@ class UIPygame(UIBase):
         return None
 
     def ler_movimento(self, turno):
+        self.inicio_turno = time.time()
+        self.turno_atual = turno
         self.selecionado = None
         self.movimentos_validos = []
         origem = None
@@ -91,32 +107,60 @@ class UIPygame(UIBase):
                     if pos_casa is None:
                         continue
 
-                    if origem is None:
-                        peca = self.tabuleiro.obter_peca(pos_casa)
-                        movimentos_validos = self.tabuleiro.movimentos_validos_para_peca(pos_casa)
-                        if peca and peca.cor == turno and movimentos_validos:
-                            origem = pos_casa
-                            self.selecionado = origem
-                            self.movimentos_validos = movimentos_validos
-                            self.mostrar_mensagem(f"Peça selecionada em {origem}. Escolha destino.")
-                        else:
-                            self.mostrar_mensagem("Selecione uma peça sua que tenha movimentos válidos.")
+                    peca = self.tabuleiro.obter_peca(pos_casa)
 
+                    if origem is None:
+                        if peca and peca.cor == turno:
+                            movimentos = self.tabuleiro.movimentos_validos_para_peca(pos_casa)
+                            if movimentos:
+                                origem = pos_casa
+                                self.selecionado = origem
+                                self.movimentos_validos = movimentos
+                                self.mostrar_mensagem(f"Peça selecionada em {origem}. Escolha o destino.")
+                            else:
+                                self.mostrar_mensagem("Essa peça não possui movimentos válidos.")
+                        else:
+                            self.mostrar_mensagem("Selecione uma peça sua com movimentos válidos.")
                     else:
-                        if pos_casa in self.movimentos_validos:
+                        if pos_casa == origem:
+                            origem = None
+                            self.selecionado = None
+                            self.movimentos_validos = []
+                            self.mostrar_mensagem("Seleção cancelada.")
+                        elif peca and peca.cor == turno:
+                            movimentos = self.tabuleiro.movimentos_validos_para_peca(pos_casa)
+                            if movimentos:
+                                origem = pos_casa
+                                self.selecionado = origem
+                                self.movimentos_validos = movimentos
+                                self.mostrar_mensagem(f"Peça alterada para {origem}. Escolha o destino.")
+                            else:
+                                self.mostrar_mensagem("Essa peça não possui movimentos válidos.")
+                        elif pos_casa in self.movimentos_validos:
                             destino = pos_casa
                             self.selecionado = None
                             self.movimentos_validos = []
                             self.mostrar_mensagem("")
+
+                            # ⏱️ Finaliza tempo do turno
+                            if self.inicio_turno:
+                                tempo_passado = time.time() - self.inicio_turno
+                                if self.turno_atual == 'B':
+                                    self.tempo_branco += tempo_passado
+                                else:
+                                    self.tempo_preto += tempo_passado
+                                self.inicio_turno = None
+
                             return origem, destino
                         else:
-                            self.mostrar_mensagem("Destino inválido. Escolha um movimento válido.")
+                            self.mostrar_mensagem("Movimento inválido. Escolha um destino válido.")
 
             self.tela.fill(PRETO)
             self.desenhar_tabuleiro()
             self.desenhar_pecas()
             self.desenhar_selecao()
             self.desenhar_mensagem()
+            self.desenhar_cronometros()
             pygame.display.flip()
 
     def ler_movimento_continuacao(self, origem):
@@ -145,4 +189,5 @@ class UIPygame(UIBase):
             self.desenhar_pecas()
             self.desenhar_selecao()
             self.desenhar_mensagem()
+            self.desenhar_cronometros()
             pygame.display.flip()

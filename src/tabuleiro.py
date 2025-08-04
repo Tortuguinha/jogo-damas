@@ -86,6 +86,17 @@ class Tabuleiro:
 
         return promovido
 
+    def existe_captura(self, cor):
+        for linha in range(self.tamanho):
+            for coluna in range(self.tamanho):
+                peca = self.obter_peca((linha, coluna))
+                if peca and peca.cor == cor:
+                    for mov in peca.movimentos_validos((linha, coluna), self):
+                        if abs(mov[0] - linha) > 1:
+                            return True
+        return False
+
+
 class Peca:
     def __init__(self, cor):
         self.cor = cor  # 'B' ou 'P'

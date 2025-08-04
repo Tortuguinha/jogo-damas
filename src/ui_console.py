@@ -2,8 +2,8 @@ from .tabuleiro import Tabuleiro
 from .ui_base import UIBase
 
 class UIConsole(UIBase):
-    def __init__(self):
-        self.tabuleiro = Tabuleiro()  # Instância para validação de posições
+    def __init__(self, tabuleiro):
+        super().__init__(tabuleiro)
 
     def ler_movimento(self, turno):
         while True:
